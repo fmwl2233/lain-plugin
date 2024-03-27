@@ -8,9 +8,8 @@
 
 `Lain-plugin`是一个围绕喵崽`Miao-Yunzai`开发的多适配器插件，让喵崽接入`QQ频道`、`微信`、`shamrock`等三方平台~，不再局限于ICQQ。
 
-我正在为 [kritor](https://github.com/KarinJS/kritor) 开发新的机器人框架，如果您有时间且热爱开源并且想参与其中，您可以联系我~
+# 本插件主开发(Zyy955)从2024年2月20日18:00:00脱离开发，宣布永久停更，本仓库不会删库(有其他开发者，看他们心情更不更新...)
 
-新框架：[Karin](https://github.com/KarinJS/carrying)
 
 ### 这里特别声明：
 
@@ -54,7 +53,6 @@ pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm 
 - [Shamrock](./docs/Shamrock.md)
 - [QQBot(群和频道)](./docs/QQBot.md)
 - [网页版微信](./docs/WeXin.md)
-- [Lagrange.Core](./docs/Lagrange.Core.md)
 
 ## 4.设置主人
 
@@ -78,7 +76,6 @@ pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm 
 - PC微信：`ComWeChat`
 - QQBot：`QQBot`
 - 网页版微信：`WeXin`
-- LagrangeCore: `LagrangeCore`
 
 ## 适配进度
 - [√] 标准输入
@@ -86,9 +83,8 @@ pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm 
 - [√] QQ频道适配器
 - [√] PC微信适配器
 - [√] 网页版微信适配器
-- [√] Shamrock适配器
+- [√] `shamrock适配器`
 - [√] QQBot适配器
-- [√] LagrangeCore
 
 <details><summary>最后求个爱发电~您的支持是我更新的动力</summary>
 
@@ -115,4 +111,3 @@ pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm 
 - [qq-group-bot](https://github.com/lc-cn/qq-group-bot)
 - [QQBot按钮库](https://gitee.com/lava081/button)
 - [xiaoye12123](https://gitee.com/xiaoye12123)
-- [Lagrange.Core](https://github.com/LagrangeDev/Lagrange.Core)

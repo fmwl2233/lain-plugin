@@ -51,7 +51,7 @@ class Shamrock {
         break
       /** 心跳 */
       case 'heartbeat':
-        common.debug('Lain-plugin', `[${this.version}，${this.QQVersion}] QQ ${this.id} 收到心跳：${JSON.stringify(data.status, null, 2)}`)
+        common.debug('Lain-plugin', `[${this.version}，${this.QQVersion}] QQ ${this.id} 收到心跳：${data.status['qq.status']}`)
         break
       default:
         logger.error(`[Shamrock][未知事件] ${JSON.stringify(data)}`)
@@ -461,13 +461,13 @@ class Shamrock {
   /** 获取群成员，缓存到gml中 */
   async loadGroupMemberList (groupId, id = this.id) {
     try {
-      let gml = new Map()
+      let gml = {}
       let memberList = await api.get_group_member_list(id, groupId)
       for (const user of memberList) {
         user.card = user.nickname
-        user.uin = this.id
-        gml.set(user.user_id, user)
+        gml[user.user_id] = user
       }
+      gml.uin = this.id
       Bot.gml.set(groupId, gml)
       Bot[id].gml.set(groupId, gml)
       common.debug(id, `加载[${groupId}]群成员完成`)
@@ -613,7 +613,6 @@ class Shamrock {
       /** 取缓存！！！别问为什么，因为傻鸟同步 */
       let member = Bot[this.id].gml.get(group_id)?.[user_id] || {}
       member.info = { ...member }
-      member.getAvatarUrl = (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${user_id}`
       return member
     } else {
       api.get_group_member_info(this.id, group_id, user_id, true).then(res => {
@@ -735,21 +734,19 @@ class Shamrock {
       }
     }
 
-    const content = (await Promise.all(msg.map(async i => {
-      try {
-        let shamrock = (await this.getShamrock(i)).message[0]
-        return {
-          type: 'node',
-          data: {
-            content: shamrock
-          }
+    if (msg.length) {
+      for (let i of msg) {
+        let { message, raw_message } = await this.getShamrock(i)
+
+        try {
+          const { message_id } = await api.send_private_msg(this.id, this.id, message, raw_message)
+          makeForwardMsg.message.push({ type: 'node', data: { id: message_id } })
+        } catch (err) {
+          common.error(this.id, err)
         }
-      } catch (err) {
-        logger.warn('制作转发消息节点失败：', err)
-        return null
       }
-    }))).filter(i => i)
-    return content
+    }
+    return makeForwardMsg
   }
 
   /** 撤回消息 */
@@ -774,7 +771,6 @@ class Shamrock {
       const { message, ToString, raw_message, log_message, source, file } = await this.getMessage(data.message, group_id)
 
       /** 通用数据 */
-      e.uin = this.id // ???鬼知道哪来的这玩意，icqq都没有...
       e.message = message
       e.raw_message = raw_message
       e.log_message = log_message
@@ -897,7 +893,7 @@ class Shamrock {
     /** 快速回复 */
     e.reply = async (msg, quote) => await this.sendReplyMsg(e, group_id || user_id, msg, quote)
     /** 获取对应用户头像 */
-    e.getAvatarUrl = (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${user_id}`
+    e.getAvatarUrl = (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${this.id}`
 
     /** 添加适配器标识 */
     e.adapter = 'shamrock'
@@ -1349,8 +1345,8 @@ class Shamrock {
           }
           break
         case 'forward':
-          message.push(i)
-          raw_message.push(i.desc)
+          message.push({ type: 'text', data: { text: i.text } })
+          raw_message.push(i.text)
           break
         case 'node':
           node = true
@@ -1368,7 +1364,7 @@ class Shamrock {
     raw_message = raw_message.join('')
 
     /** 合并转发 */
-    if (node) raw_message = `[转发消息:${common.limitString(JSON.stringify(message), 100)}]`
+    if (node) raw_message = `[转发消息:${JSON.stringify(message)}]`
 
     return { message, raw_message, node }
   }

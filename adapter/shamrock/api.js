@@ -662,18 +662,6 @@ let api = {
   },
 
   /**
- * 上传合并转发
- * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
- * @param {object[]} messages  - 合并转发消息集
- */
-  async upload_multi_message (id, messages) {
-    // 随机生成100-110的群号
-    const group_id = Math.floor(Math.random() * 10) + 100
-    const params = { group_id, message_type: 'group', messages }
-    return await this.SendApi(id, 'upload_multi_message', params)
-  },
-
-  /**
   * 获取被禁言的群成员列表
   * @param {string} id - 机器人QQ 通过e.bot、Bot调用无需传入
   * @param {number} group_id - 发送到的目标群号

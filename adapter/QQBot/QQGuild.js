@@ -38,7 +38,7 @@ export default class adapterQQGuild {
     } catch {
       id = this.id
       avatar = 'https://cdn.jsdelivr.net/gh/Zyy955/imgs/img/202402020757587.gif'
-      username = 'QQGuild'
+      username = 'QQBot'
     }
 
     Bot[this.id] = {
@@ -96,7 +96,6 @@ export default class adapterQQGuild {
     const group_name = await this.getGroupName(src_guild_id || guild_id, channel_id, friend)
 
     data.data = e
-    data.uin = this.id // ???鬼知道哪来的这玩意，icqq都没有...
     data.adapter = 'QQGuild'
     data.user_id = user_id
     data.group_id = group_id
@@ -155,7 +154,6 @@ export default class adapterQQGuild {
     }
 
     for (let v of loader.priority) {
-      // eslint-disable-next-line new-cap
       let p = new v.class(data)
       p.e = data
       /** 判断是否启用功能 */
@@ -214,7 +212,7 @@ export default class adapterQQGuild {
     return {
       is_admin: false,
       is_owner: false,
-      recallMsg: async () => Promise.reject(new Error('QQ频道未支持')),
+      recallMsg: async () => ({ error: 'QQBot未支持' }),
       sendMsg: async (msg) => await this.sendGroupMsg(groupID, msg),
       makeForwardMsg: async (data) => await common.makeForwardMsg(data),
       getChatHistory: async () => [],
@@ -222,20 +220,20 @@ export default class adapterQQGuild {
       /** 戳一戳 */
       pokeMember: async (operatorId) => '',
       /** 禁言 */
-      muteMember: async (groupId, userId, time) => Promise.reject(new Error('QQ频道未支持')),
+      muteMember: async (groupId, userId, time) => ({ error: 'QQBot未支持' }),
       /** 全体禁言 */
-      muteAll: async (type) => Promise.reject(new Error('QQ频道未支持')),
-      getMemberMap: async () => Promise.reject(new Error('QQ频道未支持')),
+      muteAll: async (type) => ({ error: 'QQBot未支持' }),
+      getMemberMap: async () => ({ error: 'QQBot未支持' }),
       /** 退群 */
-      quit: async () => Promise.reject(new Error('QQ频道未支持')),
+      quit: async () => ({ error: 'QQBot未支持' }),
       /** 设置管理 */
-      setAdmin: async (qq, type) => Promise.reject(new Error('QQ频道未支持')),
+      setAdmin: async (qq, type) => ({ error: 'QQBot未支持' }),
       /** 踢 */
-      kickMember: async (qq, rejectAddRequest = false) => Promise.reject(new Error('QQ频道未支持')),
+      kickMember: async (qq, rejectAddRequest = false) => ({ error: 'QQBot未支持' }),
       /** 头衔 **/
-      setTitle: async (qq, title, duration) => Promise.reject(new Error('QQ频道未支持')),
+      setTitle: async (qq, title, duration) => ({ error: 'QQBot未支持' }),
       /** 修改群名片 **/
-      setCard: async (qq, card) => Promise.reject(new Error('QQ频道未支持'))
+      setCard: async (qq, card) => ({ error: 'QQBot未支持' })
     }
   }
 
@@ -661,4 +659,4 @@ export default class adapterQQGuild {
   }
 }
 
-common.info('Lain-plugin', 'QQ频道适配器加载完成')
+common.info('Lain-plugin', 'QQ群Bot适配器加载完成')

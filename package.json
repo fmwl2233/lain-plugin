@@ -26,13 +26,12 @@
     "express": "^4.18.2",
     "file-type": "^19.0.0",
     "get-urls": "^12.1.0",
-    "qq-group-bot": "1.0.34",
+    "qq-group-bot": "1.0.31",
     "qrcode": "^1.5.3",
     "sharp": "^0.33.1",
     "silk-wasm": "^3.2.3",
     "wechat4u": "^0.7.14",
-    "ws": "^8.16.0",
-    "icqq": "0.6.10"
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "cz-conventional-changelog": "^3.3.0",

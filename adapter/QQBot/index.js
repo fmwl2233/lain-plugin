@@ -146,14 +146,14 @@ export default class adapterQQBot {
       sendMsg: async (msg) => await this.sendFriendMsg(userId, msg),
       makeForwardMsg: async (data) => await common.makeForwardMsg(data),
       getChatHistory: async () => [],
-      getAvatarUrl: (size = 0) => this.getAvatarUrl(size, userId)
+      getAvatarUrl: async (size = 0, userID) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${userID.split('-')[1] || this.id}`
     }
   }
 
   pickMember (groupID, userID) {
     return {
       member: this.member(groupID, userID),
-      getAvatarUrl: (size = 0) => this.getAvatarUrl(size, userID)
+      getAvatarUrl: (size = 0, userID) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${userID.split('-')[1] || this.id}`
     }
   }
 
@@ -169,21 +169,16 @@ export default class adapterQQBot {
       is_admin: false,
       is_owner: false,
       /** 获取头像 */
-      getAvatarUrl: (size = 0) => this.getAvatarUrl(size, userId),
+      getAvatarUrl: (size = 0) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${userId}`,
       mute: async (time) => ''
     }
     return member
-  }
-
-  getAvatarUrl (size = 0, id) {
-    return Number(id) ? `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${id}` : `https://q.qlogo.cn/qqapp/${this.id}/${id.split('-')[1] || id}/${size}`
   }
 
   /** 转换格式给云崽处理 */
   async message (data, isGroup) {
     let { self_id: tinyId, ...e } = data
     e.data = data
-    e.uin = this.id // ???鬼知道哪来的这玩意，icqq都没有...
     e.tiny_id = tinyId
     e.self_id = this.id
     e.sendMsg = data.reply
@@ -198,7 +193,6 @@ export default class adapterQQBot {
     }
 
     for (let v of loader.priority) {
-      // eslint-disable-next-line new-cap
       let p = new v.class(e)
       p.e = e
       /** 判断是否启用功能 */
@@ -227,7 +221,7 @@ export default class adapterQQBot {
     /** 将收到的消息转为字符串 */
     e.toString = () => e.raw_message
     /** 获取对应用户头像 */
-    e.getAvatarUrl = (size = 0) => this.getAvatarUrl(size, data.user_id)
+    e.getAvatarUrl = (size = 0, id = data.user_id) => `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=${id}`
 
     /** 构建场景对应的方法 */
     if (isGroup) {
@@ -602,19 +596,13 @@ export default class adapterQQBot {
         console.warn('[Bot.uploadFile]接口即将废除，请查看文档更换新接口！')
         return { type, file: url, width, height }
       }
-      /** ICQQ */
-      if (Cfg.ICQQ && lain?.file?.uploadImage) {
-        const { url, width, height } = await lain.file.uploadImage(file)
-        common.mark('Lain-plugin', `使用ICQQ发送图片：${url}`)
-        return { type, file: url, width, height }
-      }
     } catch (error) {
       logger.error('[调用错误][自定义图床] 将继续公网发送图片')
       logger.error(error)
     }
 
     try {
-      /** QQ图床 预留 */
+      /** QQ图床 */
       const QQ = Bot[this.id].config.other.QQ
       if (QQ) {
         const { width, height, url } = await Bot.uploadQQ(file, QQ)
@@ -643,12 +631,6 @@ export default class adapterQQBot {
         common.mark('Lain-plugin', `使用自定义服务器发送视频：${url}`)
         return { type, file: url }
       }
-      /** ICQQ */
-      if (Cfg.ICQQ && lain?.file?.uploadVideo) {
-        const url = await lain.file.uploadVideo(file)
-        common.mark('Lain-plugin', `使用ICQQ发送视频：${url}`)
-        return { type, file: url }
-      }
     } catch (error) {
       logger.error('[调用错误][自定义服务器] 将继续公网发送视频')
       logger.error(error)
@@ -670,7 +652,13 @@ export default class adapterQQBot {
   async getAudio (file) {
     /** icqq高清语音 */
     if (typeof file === 'string' && file.startsWith('protobuf://')) {
-      return { type: 'audio', file: await lain.file.getPttUrl(lain.file.proto(file)[3]) }
+      let group_id = Cfg.Other.recordGroup_id
+      if (!group_id) throw new Error('没有配置 recordGroup_id，无法处理莫发语音，请前往other.yaml进行配置')
+      group_id = Number(group_id)
+      file = await Bot.pickGroup(group_id).sendMsg({ type: 'record', file })
+      file = await Bot.getMsg(file.message_id)
+      /** 这逼玩意就是个mp3... */
+      file = file.message[0].url
     }
 
     try {
@@ -681,12 +669,6 @@ export default class adapterQQBot {
           common.mark('Lain-plugin', `<云转码:${url}>`)
           return { type: 'audio', file: url }
         }
-      }
-      /** ICQQ */
-      if (Cfg.ICQQ && lain?.file?.uploadPtt) {
-        const url = await lain.file.uploadPtt(file)
-        common.mark('Lain-plugin', `使用ICQQ发送语音：${url}`)
-        return { type: 'audio', file: url }
       }
     } catch (error) {
       logger.error('云转码失败')
@@ -953,56 +935,41 @@ export default class adapterQQBot {
 
   /** dau统计 */
   async dau () {
-    try {
-      if (!Cfg.Other.QQBotdau) return
-      if (!lain.DAU[this.id]) lain.DAU[this.id] = await this.getDAU()
-      lain.DAU[this.id].send_count++
-      const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-      const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-      redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
-    } catch (error) {
-      logger.error(error)
-    }
+    if (!Cfg.Other.QQBotdau) return
+    lain.DAU[this.id].send_count++
+    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
+    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
+    redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
   }
 
   /** 下行消息量 */
-  async send_count () {
-    try {
-      if (!Cfg.Other.QQBotdau) return
-      if (!lain.DAU[this.id]) lain.DAU[this.id] = await this.getDAU()
-      lain.DAU[this.id].send_count++
-      const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-      const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-      redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
-    } catch (error) {
-      logger.error(error)
-    }
+  send_count () {
+    if (!Cfg.Other.QQBotdau) return
+    lain.DAU[this.id].send_count++
+    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
+    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
+    redis.set(`QQBotDAU:send_count:${this.id}`, lain.DAU[this.id].send_count * 1, { EX })
   }
 
   /** 上行消息量 */
-  async msg_count (data) {
-    try {
-      if (!Cfg.Other.QQBotdau) return
-      let needSetRedis = false
-      if (!lain.DAU[this.id]) lain.DAU[this.id] = await this.getDAU()
-      lain.DAU[this.id].msg_count++
-      if (data.group_id && !lain.DAU[this.id].group_cache[data.group_id]) {
-        lain.DAU[this.id].group_cache[data.group_id] = 1
-        lain.DAU[this.id].group_count++
-        needSetRedis = true
-      }
-      if (data.user_id && !lain.DAU[this.id].user_cache[data.user_id]) {
-        lain.DAU[this.id].user_cache[data.user_id] = 1
-        lain.DAU[this.id].user_count++
-        needSetRedis = true
-      }
-      const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
-      const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
-      if (needSetRedis) redis.set(`QQBotDAU:${this.id}`, JSON.stringify(lain.DAU[this.id]), { EX })
-      redis.set(`QQBotDAU:msg_count:${this.id}`, lain.DAU[this.id].msg_count * 1, { EX })
-    } catch (error) {
-      logger.error(error)
+  msg_count (data) {
+    if (!Cfg.Other.QQBotdau) return
+    let needSetRedis = false
+    lain.DAU[this.id].msg_count++
+    if (data.group_id && !lain.DAU[this.id].group_cache[data.group_id]) {
+      lain.DAU[this.id].group_cache[data.group_id] = 1
+      lain.DAU[this.id].group_count++
+      needSetRedis = true
     }
+    if (data.user_id && !lain.DAU[this.id].user_cache[data.user_id]) {
+      lain.DAU[this.id].user_cache[data.user_id] = 1
+      lain.DAU[this.id].user_count++
+      needSetRedis = true
+    }
+    const time = moment(Date.now()).add(1, 'days').format('YYYY-MM-DD 00:00:00')
+    const EX = Math.round((new Date(time).getTime() - new Date().getTime()) / 1000)
+    if (needSetRedis) redis.set(`QQBotDAU:${this.id}`, JSON.stringify(lain.DAU[this.id]), { EX })
+    redis.set(`QQBotDAU:msg_count:${this.id}`, lain.DAU[this.id].msg_count * 1, { EX })
   }
 }
 
